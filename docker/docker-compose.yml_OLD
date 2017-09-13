@@ -1,0 +1,32 @@
+version: "3.2"
+services:
+      
+  # https://hub.docker.com/_/mongo/
+  server:
+    build:
+      context: .
+      args:
+        user: rleite
+    ports:
+      - 22
+    container_name: server
+    # command: /bin/bash
+    # stdin_open: true
+    # tty: true
+    entrypoint: docker-entrypoint.sh
+    # command: /bin/bash
+  # # https://hub.docker.com/_/redis/
+  # mem:
+  #   image: redis:3.2.8-alpine
+  #   ports:
+  #    - 6379:6379
+  #   # tty: true
+  #   container_name: mem
+  #   raul@node:~/dev/redes/testes$ 
+
+
+#build 
+# docker build --tag bd-server --build-arg user=rleite  .
+
+# run
+# docker run --name ct-server -p 22 -it bd-server /bin/bash
