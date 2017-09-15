@@ -1,11 +1,23 @@
 #!/bin/bash
 # lxc stop ha && lxc publish ha
 
-out="out"
-nginx1="web1"
-nginx2="web2"
-haproxy="ha"
+ct_name="$1"
+img_alias="$2"
 
-lxc stop $test && lxc publish $test && \
-lxc stop $nginx1 && lxc publish $nginx1 && \
-lxc stop $nginx2 && lxc publish $nginx2
+if [ $EUID == "0" ];
+then
+    echo "Não rode o script como root, pecado"
+    exit 1
+fi
+
+if [[ -z $ct_name || -z $img_alias || "$1" == "--help" || "$1" == "-h" ]];
+then
+    echo "# Parametros obrigatorios:"
+    echo "1- container-name     Ex. web1, web2, proxy, outside, test"
+    echo "2- img-alias          Ex. web1/posconfigs"
+    exit 1
+fi
+
+
+echo "esta indo..."
+lxc stop $ct_name &>/dev/null && lxc publish $ct_name --verbose --alias $img_alias
