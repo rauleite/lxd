@@ -10,22 +10,25 @@ ct_type="$2"
 img="$3"
 alias="$4"
 
+network="$5"
+
 ## Facilidade ##
 lxc_exec="lxc exec ${ct_name} --"
 lxc_install="${lxc_exec} apt-get install -y"
 
 
-if [[ -z $ct_name || -z $ct_type || -z $img || -z $alias || "$1" == "--help" || "$1" == "-h" ]];
+if [[ -z $ct_name || -z $ct_type || -z $img || -z $alias || -z $network || "$1" == "--help" || "$1" == "-h" ]];
 then
     echo 'Images:'
     lxc image list
     echo 'Containers:'    
     lxc list
     echo "# Todos Parametros sao obrigatorios:"
-    echo "1- Nome que quer dar ao container     Ex. web1, web2, proxy, test"
-    echo "2- Perfil de configuracoes do cont.   Um entre: nginx, proxy, test"
-    echo "3- Img base                           Ex. ubuntu/zesty/amd64, proxy/posbuild"
+    echo "1- Nome que quer dar ao container     Ex. web1 | web2 | proxy | test"
+    echo "2- Perfil de configuracoes do cont.   Um entre: nginx | proxy | test"
+    echo "3- Img base                           Ex. ubuntu/zesty/amd64 | proxy/posbuild"
     echo "4- Alias para a imagem                Ex. ubuntu"
+    echo "5- Network - existente ou nao         Ex. lxcbr0"
     exit 1
 fi
 
@@ -48,6 +51,7 @@ install_haproxy () {
 update_essenciais () {
     echo "Espedando archive.ubuntu.com (Se demorar 1 minuto pode dar Ctrl^C, e comentar a linha de update do script)"
     until ping -c1 archive.ubuntu.com &>/dev/null; do :; done
+    until ping -c1 security.ubuntu.com &>/dev/null; do :; done
     $lxc_exec apt-get update
     $lxc_exec apt-get -y upgrade
     $lxc_install nano
@@ -59,30 +63,34 @@ update_essenciais () {
 lxc image show $alias &>/dev/null || lxc image copy images:$img local: --alias $alias
 # lxc launch $alias $ct_name
 
+echo "- launching"
+lxc launch $alias $ct_name
+echo "- creanting network"
+lxc network create $network 2&> /dev/null
+lxc network set $network ipv6.address none
+echo "- attaching network"
+lxc network attach $network $ct_name
+
+sleep 5
+
 if [ "$ct_type" = "proxy" ]
 then
     echo "level 2 - Van Chase"
-    lxc launch $alias $ct_name
     add_redis_repo
     update_essenciais
     install_haproxy
     install_redis_server
-    # $lxc_exec bash
 elif [ "$ct_type" = "nginx" ]
 then
     echo "level 3 - The Hotel"
-    lxc launch $alias $ct_name
     add_redis_repo
     update_essenciais
     install_nginx
     install_redis_server
-    # $lxc_exec bash
 elif [ "$ct_type" = "test" ]
 then
     echo "level 0 - Isolated"
-    lxc launch $alias $ct_name
     update_essenciais
-    # $lxc_exec bash
 else
     echo "Tem que digitar um tipo valido"
     exit 1
